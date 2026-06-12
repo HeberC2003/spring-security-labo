@@ -3,10 +3,14 @@ package com.server.app.services;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.server.app.dto.auth.LoginDto;
+import com.server.app.dto.auth.SignUpDto;
+import com.server.app.dto.auth.UpdatePasswordDto;
 import com.server.app.dto.user.UserCreateDto;
 import com.server.app.dto.user.UserUpdateDto;
 import com.server.app.entities.Role;
@@ -33,7 +37,7 @@ public class UserService {
         user.setName(dto.getName());
         user.setSurname(dto.getSurname());
         user.setEmail(dto.getEmail());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setPassword(dto.getPassword());
 
         if (dto.getRole() != null) {
             Role role = roleRepository.findById(dto.getRole())
@@ -84,6 +88,68 @@ public class UserService {
             user.setRole(role);
         }
 
+        return userRepository.save(user);
+    }
+
+    public User findById(int id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+    }
+
+    @Transactional
+    public User signUp(SignUpDto dto) {
+        uniqueUsername(dto.getUsername(), null);
+        uniqueEmail(dto.getEmail(), null);
+
+        User user = new User();
+        user.setUsername(dto.getUsername());
+        user.setName(dto.getName());
+        user.setSurname(dto.getSurname());
+        user.setEmail(dto.getEmail());
+        user.setPassword(dto.getPassword());
+
+        Role role = roleRepository.findByName("ADMIN")
+                .orElseThrow(() -> new NotFoundException("Rol no encontrado"));
+        user.setRole(role);
+
+        return userRepository.save(user);
+    }
+
+    public User login(LoginDto dto) {
+        User user = userRepository.findUserByUsername(dto.getUsername())
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if (!encoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new ConfictException("Contraseña incorrecta");
+        }
+
+        if (user.isBlocked()) {
+            throw new ConfictException("Tu cuenta está bloqueada");
+        }
+
+        return user;
+    }
+
+    @Transactional
+    public User updateProfile(int userId, UserUpdateDto dto) {
+        return updateUser(userId, dto);
+    }
+
+    @Transactional
+    public User updatePassword(int userId, UpdatePasswordDto dto) {
+        User user = findById(userId);
+
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if (!encoder.matches(dto.getOldpassword(), user.getPassword())) {
+            throw new ConfictException("La contraseña actual es incorrecta");
+        }
+
+        if (!dto.getNewpassword().equals(dto.getConfirmpassword())) {
+            throw new ConfictException("Las contraseñas no coinciden");
+        }
+
+        user.setPassword(dto.getNewpassword());
         return userRepository.save(user);
     }
 
