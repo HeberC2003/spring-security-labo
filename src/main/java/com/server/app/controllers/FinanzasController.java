@@ -79,4 +79,11 @@ public class FinanzasController {
                 new PaginationMeta(page, size, result.getTotalPages(), result.getTotalElements())
         ));
     }
+
+    @PostMapping("/movimientos")
+    public ResponseEntity<?> createMovimiento(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody MovimientoCreateDto dto) {
+        return ResponseEntity.ok(finanzasService.createMovimiento(user, dto));
+    }
 }

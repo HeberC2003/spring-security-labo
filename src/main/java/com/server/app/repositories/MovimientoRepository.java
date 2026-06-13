@@ -19,4 +19,9 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Integer>
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,
             Pageable pageable);
+
+    @Query("SELECT m FROM Movimiento m WHERE m.cuenta.usuario.id = :usuarioId")
+    Page<Movimiento> findByUsuarioId(
+            @Param("usuarioId") int usuarioId,
+            Pageable pageable);
 }

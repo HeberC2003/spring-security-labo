@@ -49,6 +49,10 @@ public class FinanzasService {
     public Page<Movimiento> getMovimientos(User usuario, int page, int size,
                                            LocalDateTime fechaInicio,
                                            LocalDateTime fechaFin) {
+        if (fechaInicio == null && fechaFin == null) {
+            return movimientoRepository.findByUsuarioId(
+                    usuario.getId(), PageRequest.of(page, size));
+        }
         return movimientoRepository.findByUsuarioIdAndFecha(
                 usuario.getId(), fechaInicio, fechaFin, PageRequest.of(page, size));
     }
